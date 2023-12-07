@@ -38,7 +38,7 @@
                                 @method('DELETE')
                                 <div class="row">
                                     <a class="btn" href="{{ route('user.edit', ['id' => $form['id']]) }}">Düzenle</a>
-                                    <button type="submit" class="b-btn btn">Sil</button>
+                                    <button type="submit" class="b-btn btn" onclick="return confirmDelete()">Sil</button>
                                 </div>
                             </form>
                         </li>
@@ -48,6 +48,11 @@
                 <p class="mt-3">Ürün verilerine ulaşılamadı!</p>
             @endif
     </div>
+    <script>
+        function confirmDelete() {
+            return confirm("UYARI! Seçtiğiniz ürün silinecek.");
+        }
+    </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

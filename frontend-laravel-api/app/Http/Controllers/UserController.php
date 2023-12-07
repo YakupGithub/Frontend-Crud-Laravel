@@ -10,17 +10,21 @@ use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
     public function index() {
-        $token=session('token');
-        if($token){
-            $response = Http::withToken(
-                session('token')
-            )->get('http://host.docker.internal/api/form');
-        $forms = $response->json();
-        return view('user.index', ['forms' => $forms]);
-        }
-        else{
-            return redirect()->route('user.login')
-            ->with('error','Unauthenticated');
+        $apiUrl = env('API_URL');
+    
+        $token = session('token');
+        if ($token) {
+            $response = Http::withToken($token)->get($apiUrl . 'form');
+            $forms = $response->json();
+            
+            if ($response->successful()) {
+                return view('user.index', ['forms' => $forms]);
+            } else {
+                $errorMessage = $response->json()['error'] ?? 'HATA!';
+                return redirect()->route('user.login')->with('error', $errorMessage);
+            }
+        } else {
+            return redirect()->route('user.login');
         }
     }
 
@@ -35,28 +39,34 @@ class UserController extends Controller
     }
 
     public function store(Request $request) {
-        $token=session('token');
-        if($token){
-            $response = Http::withToken(
-                session('token')
-            )->post('http://host.docker.internal/api/form/create',[
+        $apiUrl = env('API_URL');
+    
+        $token = session('token');
+        if ($token) {
+            $response = Http::withToken($token)->post($apiUrl . 'form/create/', [
                 'name' => $request->name,
                 'surname' => $request->surname,
-                'email' => $request->email]
-            );
-        return redirect()->route('user.index')->with('success', 'Ürün başarıyla eklendi.');;
-
-        }
-        else {
+                'email' => $request->email,
+            ]);
+    
+            if ($response->successful()) {
+                return redirect()->route('user.index')->with('success', $response->json('message'));
+            } else {
+                $errorMessage = $response->json()['error'] ?? 'HATA!';
+                return redirect()->route('user.index')->with('error', $errorMessage);
+            }
+        } else {
             return redirect()->route('user.login');
         }
     }
 
     public function edit($form) {
+        $apiUrl = env('API_URL');
+
         $token=session('token');
         if($token){
             $response = Http::withToken(session('token'))->get
-            ('http://host.docker.internal/api/form/edit/' . $form);
+            ($apiUrl . 'form/edit/' . $form);
             $user = $response->json();
             return view('user.edit', ['user' => $user]);
         }
@@ -66,37 +76,54 @@ class UserController extends Controller
     }
     
     public function update($form, Request $request) {
-        $token=session('token');
-        if($token){
-            $response = Http::withToken(session('token'))->put
-            ('http://host.docker.internal/api/form/update/' . $form, [
-            'name' => $request->name,
-            'surname' => $request->surname,
-            'email' => $request->email,
-        ]);
-        return redirect()->route('user.index')->with('success', 'Güncelleme başarıyla gerçekleştirildi.');
-    }
-    else{
-        return redirect()->route('user.login');
-    }
-    }
+        $apiUrl = env('API_URL');
     
-    public function destroy($id) {
-        $token=session('token');
-        if($token){
-            $response = Http::withToken(session('token'))->delete
-            ('http://host.docker.internal/api/form/delete/' . $id);
-            return redirect()->route('user.index')->with('success', 'Kullanıcı başarıyla silindi.');
-        }
-        else {
+        $token = session('token');
+        if ($token) {
+            $response = Http::withToken($token)->put($apiUrl . 'form/update/' . $form, [
+                'name' => $request->name,
+                'surname' => $request->surname,
+                'email' => $request->email,
+            ]);
+    
+            if ($response->successful()) {
+                return redirect()->route('user.index')->with('success', $response->json('message'));
+            } else {
+                $errorMessage = $response->json()['error'] ?? 'HATA!';
+                return redirect()->route('user.index')->with('error', $errorMessage);
+            }
+        } else {
             return redirect()->route('user.login');
         }
     }
+    
+    
+    public function destroy($id) {
+        $apiUrl = env('API_URL');
+    
+        $token = session('token');
+    
+        if ($token) {
+            $response = Http::withToken($token)->delete($apiUrl . 'form/delete/' . $id);
+    
+            if ($response->successful()) {
+                return redirect()->route('user.index')->with('success', $response->json('message'));
+            } else {
+                $errorMessage = $response->json()['error'] ?? 'HATA!';
+                return redirect()->route('user.index')->with('error', $errorMessage);
+            }
+        } else {
+            return redirect()->route('user.login');
+        }
+    }
+    
     public function signup() {
         return view('user.register');
     }
     public function register(Request $request) {
-        $response = Http::post('http://host.docker.internal/api/register', [
+        $apiUrl = env('API_URL');
+    
+        $response = Http::post($apiUrl . 'register', [
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
@@ -105,8 +132,10 @@ class UserController extends Controller
     
         $responseData = $response->json();
     
-        if (isset($responseData['error'])) {
-            return redirect()->route('user.register')->with('error', 'Şifre kısımları hatalıdır!');
+        if ($responseData['status'] == 0) {
+            return redirect()->route('user.register')->with('error', $responseData['error']);
+        } else {
+            return redirect()->route('user.login')->with('success', $responseData['message']);
         }
     }
     
@@ -115,7 +144,9 @@ class UserController extends Controller
     }
 
     public function login(Request $request) {
-        $response = Http::post('http://host.docker.internal/api/login', [
+        $apiUrl = env('API_URL');
+    
+        $response = Http::post($apiUrl . 'login', [
             'email' => $request->email,
             'password' => $request->password,
         ]);
@@ -124,23 +155,26 @@ class UserController extends Controller
     
         if ($jsonData['status'] == 1) {
             session(['token' => $jsonData['token']]);
-            return redirect()->route('user.index')->with('success', 'Giriş Başarılı Hoşgeldiniz!');
+            return redirect()->route('user.index')->with('success', $jsonData['message']);
         } else {
-            return redirect('login')->with(['status' => $jsonData['status'],
-            'error' => 'Giriş başarısız! Lütfen bilgilerinizi kontrol edin.']);
+            return redirect('login')->with(['status' => $jsonData['status'], 'error' => $jsonData['message']]);
         }
     }
     
     public function logout(Request $request) {
-        $response = Http::withToken(
-            session('token')
-        )->post(    
-            'http://host.docker.internal/api/logout',
-           
-        )->json();
-        session(['token'=>'']);  
-        return redirect()->route('user.login')
-        ->with('success','Çıkış yapıldı! Ürünleri görmek için giriş yapın.');
-            return redirect('login');
-    }    
+        $apiUrl = env('API_URL');
+    
+        $response = Http::withToken(session('token'))->post($apiUrl . 'logout');
+    
+        session(['token' => '']);
+    
+        if ($response->successful()) {
+            $successMessage = $response->json('message');
+            return redirect()->route('user.login')->with('success', $successMessage);
+        } else {
+            $errorMessage = $response->json('message');
+            return redirect()->route('user.login')->with('error', $errorMessage);
+        }
+    }
+    
 }

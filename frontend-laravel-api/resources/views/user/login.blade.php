@@ -9,10 +9,10 @@
 </head>
 <body>
 <div class="wrapper">
-<h1>Hoşgeldiniz</h1>
+    <h1>Hoşgeldiniz</h1>
     <form method="POST" action="{{ route('user.login') }}">
-    <br>
-    @csrf
+        @csrf
+        <br>
         @if(session('success'))
         <div class="alert alert-success">
             {{ session('success') }}
@@ -25,9 +25,8 @@
         </div>
         @endif
         <div class="input-box">
-            <input type="email" placeholder="Email" id="email" class="form-control" name="email" required
-                autofocus>
-                <i class="fa-solid fa-envelope"></i>
+            <input type="email" placeholder="Email" id="email" class="form-control" name="email" required autofocus>
+            <i class="fa-solid fa-envelope"></i>
             @if ($errors->has('email'))
             <span class="text-danger">{{ $errors->first('email') }}</span>
             @endif
@@ -40,8 +39,8 @@
             @endif
         </div>
         <div class="register-link">
-                <p>Hesabınız yok mu? <a href="http://localhost:8000/register">Kayıt Ol</a></p>
-            </div>
+            <p>Hesabınız yok mu? <a href="{{ route('user.register') }}">Kayıt Ol</a></p>
+        </div>
         <div class="d-grid mx-auto">
             <button type="submit" class="btn btn-dark btn-block">Giriş Yap</button>
         </div>
